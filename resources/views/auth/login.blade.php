@@ -45,15 +45,6 @@
                 {{ __('Login') }}
             </button>
         </form>
-
-        <div class="mt-6 pt-5 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-400 space-y-1">
-            <p class="font-semibold text-slate-500 dark:text-slate-400">{{ __('Demo accounts') }} (password):</p>
-            <ul dir="ltr" class="font-mono space-y-0.5 list-disc list-inside">
-                <li>insurance@alfarabilab.test</li>
-                <li>lab@alfarabilab.test</li>
-                <li>doctor@alfarabilab.test</li>
-            </ul>
-        </div>
     </div>
 </div>
 </body>
