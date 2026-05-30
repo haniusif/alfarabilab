@@ -4,6 +4,8 @@
             ['route' => 'doctor.index', 'label' => __('Dashboard'), 'active' => 'doctor.index'],
             ['route' => 'doctor.files', 'label' => __('All files'),  'active' => 'doctor.files'],
             ['route' => 'doctor.duplicates', 'label' => __('Duplicates'), 'active' => 'doctor.duplicates'],
+            ['route' => 'doctor.reports', 'label' => __('Reports'), 'active' => 'doctor.reports*'],
+            ['route' => 'doctor.trash', 'label' => __('Trash'), 'active' => 'doctor.trash'],
         ],
         'lab_admin' => [
             ['route' => 'lab.index', 'label' => __('Unassigned'), 'active' => 'lab.index'],
@@ -12,6 +14,7 @@
             ['route' => 'lab.insurers', 'label' => __('Insurers'), 'active' => 'lab.insurers'],
             ['route' => 'lab.analytics', 'label' => __('Analytics'), 'active' => 'lab.analytics'],
             ['route' => 'lab.activity', 'label' => __('Activity'), 'active' => 'lab.activity'],
+            ['route' => 'lab.trash', 'label' => __('Trash'), 'active' => 'lab.trash'],
         ],
         'insurance' => [
             ['route' => 'insurance.index', 'label' => __('My files'), 'active' => 'insurance.index'],

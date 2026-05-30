@@ -11,6 +11,7 @@ use App\Models\Patient;
 use App\Models\PatientFile;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class LabWebController extends Controller
 {
@@ -212,6 +213,49 @@ class LabWebController extends Controller
         return back()->with('status', __(':count files auto-assigned to least-loaded doctors', [
             'count' => $unassigned->count(),
         ]));
+    }
+
+    /** نقل ملف إلى سلة المحذوفات (حذف مؤقّت — يمكن استعادته) */
+    public function destroy(Request $request, PatientFile $file)
+    {
+        $file->delete();
+
+        return redirect()->route('lab.trash')->with('status', __('File moved to trash'));
+    }
+
+    /** قائمة الملفات المحذوفة حذفاً مؤقتاً (نظرة عامة لإدارة المعمل) */
+    public function trash(Request $request)
+    {
+        $files = PatientFile::onlyTrashed()
+            ->with('patient', 'doctor', 'insuranceCompany')
+            ->orderByDesc('deleted_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('lab.trash', ['files' => $files]);
+    }
+
+    /** استعادة ملف محذوف مؤقتاً */
+    public function restore(int $file)
+    {
+        $patientFile = PatientFile::onlyTrashed()->findOrFail($file);
+        $patientFile->restore();
+
+        return back()->with('status', __('File restored from trash'));
+    }
+
+    /** حذف نهائي — يُزيل السجل والملف الأصلي على القرص */
+    public function forceDestroy(int $file)
+    {
+        $patientFile = PatientFile::onlyTrashed()->findOrFail($file);
+
+        if ($patientFile->source_path && Storage::exists($patientFile->source_path)) {
+            Storage::delete($patientFile->source_path);
+        }
+
+        $patientFile->forceDelete();
+
+        return back()->with('status', __('File permanently deleted'));
     }
 
     /** الأطباء النشطون مع عدد ملفاتهم المفتوحة */

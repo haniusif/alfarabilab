@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Patient extends Model
 {
@@ -43,6 +44,21 @@ class Patient extends Model
         return static::where('mobile', $this->mobile)
             ->where('id', '!=', $this->id)
             ->get();
+    }
+
+    /**
+     * ترقية هذا الفرد إلى ولي أمر العائلة (الملف الرئيسي):
+     * — يُعيّن هذا الفرد رأس العائلة، ويُجعل الباقون تابعين له.
+     */
+    public function promoteToHead(): void
+    {
+        DB::transaction(function () {
+            static::where('mobile', $this->mobile)
+                ->where('id', '!=', $this->id)
+                ->update(['is_head' => false, 'guardian_id' => $this->id]);
+
+            $this->update(['is_head' => true, 'guardian_id' => null]);
+        });
     }
 
     /**

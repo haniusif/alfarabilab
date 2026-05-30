@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PatientFile extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'patient_id', 'insurance_company_id', 'doctor_id',
         'patient_external_id', 'referral_doctor', 'age_gender',

@@ -30,6 +30,7 @@
             <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-300">
                 <tr>
                     <th class="px-4 py-3 font-semibold text-start">{{ __('Patient') }}</th>
+                    <th class="px-4 py-3 font-semibold text-start">{{ __('Patient Ref.') }}</th>
                     <th class="px-4 py-3 font-semibold text-start">{{ __('Test') }}</th>
                     <th class="px-4 py-3 font-semibold text-start">{{ __('Result') }}</th>
                     <th class="px-4 py-3 font-semibold text-start">{{ __('Status') }}</th>
@@ -45,6 +46,7 @@
                             </a>
                             <div class="text-xs text-slate-400 dark:text-slate-500" dir="ltr">{{ $file->patient->mobile ?? '' }}</div>
                         </td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300 font-mono text-xs" dir="ltr">{{ $file->patient_ref_no ?? '—' }}</td>
                         <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ $file->test_name ?? '—' }}</td>
                         <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ $file->result ? $file->result.' '.$file->unit : '—' }}</td>
                         <td class="px-4 py-3"><x-status-badge :status="$file->status" /></td>

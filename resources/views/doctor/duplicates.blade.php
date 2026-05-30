@@ -35,10 +35,10 @@
                                 <td class="px-4 py-3 text-slate-400 dark:text-slate-500 whitespace-nowrap" dir="ltr">{{ $file->created_at->format('Y-m-d H:i') }}</td>
                                 <td class="px-4 py-3 text-end">
                                     <form method="POST" action="{{ route('doctor.destroy', $file) }}"
-                                          onsubmit="return confirm('{{ __('Delete this duplicate?') }}')">
+                                          onsubmit="return confirm('{{ __('Move this duplicate to trash?') }}')">
                                         @csrf @method('DELETE')
                                         <button class="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-sm font-semibold px-3 py-1.5 rounded-lg">
-                                            {{ __('Delete') }}
+                                            {{ __('Move to trash') }}
                                         </button>
                                     </form>
                                 </td>

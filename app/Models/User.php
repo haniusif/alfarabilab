@@ -12,7 +12,8 @@ class User extends Authenticatable
     use HasApiTokens;
 
     protected $fillable = [
-        'name', 'email', 'password', 'role', 'specialty', 'is_active',
+        'name', 'title', 'first_name', 'last_name',
+        'email', 'password', 'role', 'specialty', 'is_active', 'avatar_path',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -49,5 +50,23 @@ class User extends Authenticatable
     public function isInsurance(): bool
     {
         return $this->role === UserRole::InsuranceCompany;
+    }
+
+    /** يجمع اللقب + الاسم الأول + الأخير في سلسلة عرض */
+    public static function composeName(?string $title, ?string $first, ?string $last): string
+    {
+        return trim(implode(' ', array_filter([
+            trim((string) $title),
+            trim((string) $first),
+            trim((string) $last),
+        ], fn ($p) => $p !== '')));
+    }
+
+    /** رابط عام للصورة الشخصية (أو placeholder) */
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path
+            ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->avatar_path)
+            : null;
     }
 }

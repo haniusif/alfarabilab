@@ -74,10 +74,23 @@
                                                 </button>
                                             </form>
                                         @endif
+                                        <form method="POST" action="{{ route('lab.files.destroy', $file) }}"
+                                              onsubmit="return confirm('{{ __('Move this file to trash?') }}')">
+                                            @csrf @method('DELETE')
+                                            <button class="w-full text-start text-sm text-rose-600 dark:text-rose-400 hover:underline px-1">
+                                                {{ __('Move to trash') }}
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             @else
-                                <span class="text-xs text-slate-300 dark:text-slate-600">—</span>
+                                <form method="POST" action="{{ route('lab.files.destroy', $file) }}"
+                                      onsubmit="return confirm('{{ __('Move this file to trash?') }}')">
+                                    @csrf @method('DELETE')
+                                    <button class="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-sm font-semibold px-2 py-1 rounded-lg">
+                                        {{ __('Move to trash') }}
+                                    </button>
+                                </form>
                             @endunless
                         </td>
                     </tr>

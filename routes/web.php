@@ -3,6 +3,8 @@
 use App\Http\Controllers\Web\AuthWebController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DoctorWebController;
+use App\Http\Controllers\Web\DoctorProfileController;
+use App\Http\Controllers\Web\DoctorReportsController;
 use App\Http\Controllers\Web\InsuranceWebController;
 use App\Http\Controllers\Web\LabActivityController;
 use App\Http\Controllers\Web\LabAnalyticsController;
@@ -66,6 +68,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/lab/files/auto-assign', [LabWebController::class, 'autoAssign'])->name('lab.auto-assign');
         Route::post('/lab/files/{file}/assign', [LabWebController::class, 'assign'])->name('lab.assign');
         Route::post('/lab/files/{file}/unassign', [LabWebController::class, 'unassign'])->name('lab.unassign');
+        Route::delete('/lab/files/{file}', [LabWebController::class, 'destroy'])->name('lab.files.destroy');
+
+        Route::get('/lab/trash', [LabWebController::class, 'trash'])->name('lab.trash');
+        Route::post('/lab/trash/{file}/restore', [LabWebController::class, 'restore'])->name('lab.trash.restore');
+        Route::delete('/lab/trash/{file}', [LabWebController::class, 'forceDestroy'])->name('lab.trash.force-destroy');
 
         Route::get('/lab/doctors', [LabDoctorController::class, 'index'])->name('lab.doctors');
         Route::get('/lab/doctors/export', [LabDoctorController::class, 'export'])->name('lab.doctors.export');
@@ -92,5 +99,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/files/{file}/source', [DoctorWebController::class, 'source'])->name('doctor.source');
         Route::patch('/files/{file}/status', [DoctorWebController::class, 'status'])->name('doctor.status');
         Route::delete('/files/{file}', [DoctorWebController::class, 'destroy'])->name('doctor.destroy');
+
+        Route::post('/patients/{patient}/mark-main', [DoctorWebController::class, 'markMain'])->name('doctor.patient.mark-main');
+
+        Route::get('/trash', [DoctorWebController::class, 'trash'])->name('doctor.trash');
+        Route::post('/trash/{file}/restore', [DoctorWebController::class, 'restore'])->name('doctor.restore');
+        Route::delete('/trash/{file}', [DoctorWebController::class, 'forceDestroy'])->name('doctor.force-destroy');
+
+        Route::get('/reports', [DoctorReportsController::class, 'index'])->name('doctor.reports');
+        Route::get('/reports/print', [DoctorReportsController::class, 'print'])->name('doctor.reports.print');
+        Route::get('/reports/export', [DoctorReportsController::class, 'export'])->name('doctor.reports.export');
+
+        Route::get('/profile', [DoctorProfileController::class, 'edit'])->name('doctor.profile');
+        Route::patch('/profile', [DoctorProfileController::class, 'update'])->name('doctor.profile.update');
+        Route::patch('/profile/password', [DoctorProfileController::class, 'password'])->name('doctor.profile.password');
     });
 });

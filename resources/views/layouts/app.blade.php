@@ -19,10 +19,21 @@
                 @include('partials.nav-links')
             </div>
             <div class="flex items-center gap-3 text-sm">
-                <span class="hidden sm:inline-flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full">
+                @php($isDoctor = $role->value === 'doctor')
+                @php($avatar = $isDoctor ? auth()->user()->avatarUrl() : null)
+                <{{ $isDoctor ? 'a' : 'span' }}
+                    @if ($isDoctor) href="{{ route('doctor.profile') }}" @endif
+                    class="hidden sm:inline-flex items-center gap-2 bg-white/10 {{ $isDoctor ? 'hover:bg-white/20 transition' : '' }} px-3 py-1.5 rounded-full">
+                    @if ($avatar)
+                        <img src="{{ $avatar }}" alt="" class="w-6 h-6 rounded-full object-cover ring-1 ring-white/30">
+                    @elseif ($isDoctor)
+                        <span class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
+                            {{ mb_substr(auth()->user()->first_name ?? auth()->user()->name, 0, 1) }}
+                        </span>
+                    @endif
                     <span class="font-semibold">{{ auth()->user()->name }}</span>
                     <span class="text-brand-100">· {{ __($roleLabels[$role->value] ?? '') }}</span>
-                </span>
+                </{{ $isDoctor ? 'a' : 'span' }}>
                 @include('partials.toggles')
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

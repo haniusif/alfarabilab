@@ -25,8 +25,9 @@ class DoctorWebController extends Controller
     {
         $doctorId = $request->user()->id;
 
-        // ملخّص الأعداد لكل حالة (للقمة)
+        // ملخّص الأعداد لكل حالة (للقمة) — نستثني «جديد» لأنه يخصّ ما لم يُسند بعد (لا يعني الطبيب)
         $counts = PatientFile::forDoctor($doctorId)
+            ->where('status', '!=', FileStatus::New->value)
             ->selectRaw('status, count(*) as c')
             ->groupBy('status')
             ->pluck('c', 'status');
@@ -42,7 +43,16 @@ class DoctorWebController extends Controller
             'no_reply'  => PatientFile::forDoctor($doctorId)->where('status', FileStatus::NoReply->value)->with('patient')->get(),
         ];
 
-        return view('doctor.index', compact('groups', 'counts'));
+        // أرقام الجوال التي تنتمي إلى عائلة (أكثر من مريض) — لإظهار شارة «رئيسي» فقط حين يهم
+        $mobiles = collect($groups)->flatten(1)->pluck('patient.mobile')->filter()->unique();
+        $familyMobiles = $mobiles->isEmpty()
+            ? collect()
+            : Patient::whereIn('mobile', $mobiles)
+                ->selectRaw('mobile, count(*) as c')
+                ->groupBy('mobile')->having('c', '>', 1)
+                ->pluck('mobile')->flip();
+
+        return view('doctor.index', compact('groups', 'counts', 'familyMobiles'));
     }
 
     /** كل ملفات الطبيب — مع بحث وتصفية وتقسيم صفحات */
@@ -79,18 +89,55 @@ class DoctorWebController extends Controller
         return view('doctor.duplicates', ['groups' => $groups]);
     }
 
-    /** حذف ملف مكرر (مع ملفه الأصلي على القرص) */
+    /** نقل ملف إلى سلة المحذوفات (حذف مؤقّت — يمكن استعادته) */
     public function destroy(Request $request, PatientFile $file)
     {
         abort_unless($file->doctor_id === $request->user()->id, 403, __('This file is not assigned to you'));
 
-        if ($file->source_path && Storage::exists($file->source_path)) {
-            Storage::delete($file->source_path);
-        }
-
         $file->delete();
 
-        return back()->with('status', __('Duplicate file deleted'));
+        return redirect()->route('doctor.trash')->with('status', __('File moved to trash'));
+    }
+
+    /** قائمة الملفات المحذوفة حذفاً مؤقتاً للطبيب */
+    public function trash(Request $request)
+    {
+        $files = PatientFile::onlyTrashed()
+            ->forDoctor($request->user()->id)
+            ->with('patient')
+            ->orderByDesc('deleted_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('doctor.trash', ['files' => $files]);
+    }
+
+    /** استعادة ملف محذوف مؤقتاً */
+    public function restore(Request $request, int $file)
+    {
+        $patientFile = PatientFile::onlyTrashed()->findOrFail($file);
+
+        abort_unless($patientFile->doctor_id === $request->user()->id, 403, __('This file is not assigned to you'));
+
+        $patientFile->restore();
+
+        return back()->with('status', __('File restored from trash'));
+    }
+
+    /** حذف نهائي — يُزيل السجل والملف الأصلي على القرص */
+    public function forceDestroy(Request $request, int $file)
+    {
+        $patientFile = PatientFile::onlyTrashed()->findOrFail($file);
+
+        abort_unless($patientFile->doctor_id === $request->user()->id, 403, __('This file is not assigned to you'));
+
+        if ($patientFile->source_path && Storage::exists($patientFile->source_path)) {
+            Storage::delete($patientFile->source_path);
+        }
+
+        $patientFile->forceDelete();
+
+        return back()->with('status', __('File permanently deleted'));
     }
 
     public function show(Request $request, PatientFile $file)
@@ -103,6 +150,15 @@ class DoctorWebController extends Controller
             ? $file->patient->familyMembers()->load('files')
             : collect();
 
+        // ملفات العائلة (نفس الجوال) المُسندة لهذا الطبيب وما زالت مفتوحة — قابلة لتطبيق نفس الإجراء عليها
+        $familyOpenFiles = $file->patient
+            ? PatientFile::forDoctor($file->doctor_id)
+                ->where('id', '!=', $file->id)
+                ->whereHas('patient', fn ($p) => $p->where('mobile', $file->patient->mobile))
+                ->open()
+                ->with('patient')->get()
+            : collect();
+
         $duplicates = $file->accession_no
             ? PatientFile::forDoctor($file->doctor_id)
                 ->where('accession_no', $file->accession_no)
@@ -110,7 +166,7 @@ class DoctorWebController extends Controller
                 ->with('patient')->get()
             : collect();
 
-        return view('doctor.show', compact('file', 'family', 'duplicates'));
+        return view('doctor.show', compact('file', 'family', 'duplicates', 'familyOpenFiles'));
     }
 
     public function upload(Request $request)
@@ -186,25 +242,60 @@ class DoctorWebController extends Controller
             ->with('status', __('File added manually'));
     }
 
+    /** تعيين أحد أفراد العائلة (نفس الجوال) رأساً للعائلة — الملف الرئيسي */
+    public function markMain(Request $request, Patient $patient)
+    {
+        $hasFile = PatientFile::forDoctor($request->user()->id)
+            ->where('patient_id', $patient->id)
+            ->exists();
+
+        abort_unless($hasFile, 403, __('This patient is not in your files'));
+
+        $patient->promoteToHead();
+
+        return back()->with('status', __(':name marked as the main family member', ['name' => $patient->name]));
+    }
+
     public function status(Request $request, PatientFile $file)
     {
         abort_unless($file->doctor_id === $request->user()->id, 403, __('This file is not assigned to you'));
 
         $data = $request->validate([
-            'action'      => ['required', 'in:explained,no_reply,deferred'],
-            'note'        => ['nullable', 'string'],
-            'deferred_to' => ['required_if:action,deferred', 'nullable', 'date'],
+            'action'          => ['required', 'in:explained,no_reply,deferred'],
+            'note'            => ['nullable', 'string'],
+            'deferred_to'     => ['required_if:action,deferred', 'nullable', 'date'],
+            'apply_to_family' => ['nullable', 'boolean'],
         ]);
 
         $actor = $request->user();
 
-        match ($data['action']) {
-            'explained' => $file->markExplained($actor, $data['note'] ?? null),
-            'no_reply'  => $file->markNoReply($actor),
-            'deferred'  => $file->defer(new \DateTime($data['deferred_to']), $actor, $data['note'] ?? null),
-        };
+        // الملف الأصلي + (اختيارياً) ملفات العائلة المفتوحة المُسندة لهذا الطبيب
+        $targets = collect([$file]);
 
-        return back()->with('status', __('File status updated'));
+        if (! empty($data['apply_to_family']) && $file->patient) {
+            $targets = $targets->concat(
+                PatientFile::forDoctor($actor->id)
+                    ->where('id', '!=', $file->id)
+                    ->whereHas('patient', fn ($p) => $p->where('mobile', $file->patient->mobile))
+                    ->open()->get()
+            );
+        }
+
+        $deferredAt = ! empty($data['deferred_to']) ? new \DateTime($data['deferred_to']) : null;
+
+        foreach ($targets as $target) {
+            match ($data['action']) {
+                'explained' => $target->markExplained($actor, $data['note'] ?? null),
+                'no_reply'  => $target->markNoReply($actor),
+                'deferred'  => $target->defer($deferredAt, $actor, $data['note'] ?? null),
+            };
+        }
+
+        $msg = $targets->count() > 1
+            ? __(':n files updated', ['n' => $targets->count()])
+            : __('File status updated');
+
+        return back()->with('status', $msg);
     }
 
     private function applyFilters($query, Request $request): void

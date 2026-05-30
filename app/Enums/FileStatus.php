@@ -12,13 +12,13 @@ enum FileStatus: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::New       => 'جديد',
-            self::Assigned  => 'مُسند للطبيب',
-            self::Explained => 'تم الشرح',
-            self::NoReply   => 'لم يتم الرد',
-            self::Deferred  => 'مؤجل',
-        };
+        return __(match ($this) {
+            self::New       => 'New',
+            self::Assigned  => 'Assigned',
+            self::Explained => 'Explained',
+            self::NoReply   => 'No reply',
+            self::Deferred  => 'Deferred',
+        });
     }
 
     /** هل الحالة نهائية (مغلقة)؟ */

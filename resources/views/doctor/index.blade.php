@@ -8,7 +8,7 @@
         'deferred'  => ['Deferred files', 'border-violet-200 dark:border-violet-800', 'text-violet-600 dark:text-violet-400'],
         'no_reply'  => ['No reply', 'border-amber-200 dark:border-amber-800', 'text-amber-600 dark:text-amber-400'],
     ];
-    $statCards = ['new'=>'New','assigned'=>'Assigned','deferred'=>'Deferred','no_reply'=>'No reply','explained'=>'Explained'];
+    $statCards = ['assigned'=>'Assigned','deferred'=>'Deferred','no_reply'=>'No reply','explained'=>'Explained'];
 @endphp
 
 @section('content')
@@ -31,7 +31,7 @@
     </div>
 
     {{-- Status summary --}}
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
         <a href="{{ route('doctor.files') }}"
            class="bg-brand-700 text-white rounded-2xl p-4 hover:bg-brand-800 transition">
             <div class="text-xs text-brand-100">{{ __('Total') }}</div>
@@ -58,10 +58,18 @@
                         <a href="{{ route('doctor.show', $file) }}"
                            class="block bg-white dark:bg-slate-800 rounded-2xl shadow-sm border {{ $border }} p-4 hover:shadow-md transition">
                             <div class="flex items-start justify-between gap-2 mb-2">
-                                <div class="font-bold text-slate-700 dark:text-slate-100">{{ $file->patient->name ?? __('Processing') }}</div>
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <div class="font-bold text-slate-700 dark:text-slate-100 truncate">{{ $file->patient->name ?? __('Processing') }}</div>
+                                    @if ($file->patient?->is_head && isset($familyMobiles[$file->patient->mobile]))
+                                        <span title="{{ __('Main') }}" class="text-xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 whitespace-nowrap">★ {{ __('Main') }}</span>
+                                    @endif
+                                </div>
                                 <x-status-badge :status="$file->status" />
                             </div>
                             <div class="text-sm text-slate-500 dark:text-slate-400">{{ $file->test_name ?? __('Awaiting reading') }}</div>
+                            @if ($file->patient_ref_no)
+                                <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{{ __('Patient Ref.') }}: <span class="font-mono" dir="ltr">{{ $file->patient_ref_no }}</span></div>
+                            @endif
                             @if ($file->result)
                                 <div class="text-sm mt-1"><span class="text-slate-400 dark:text-slate-500">{{ __('Result:') }}</span> <span class="font-semibold">{{ $file->result }} {{ $file->unit }}</span></div>
                             @endif
